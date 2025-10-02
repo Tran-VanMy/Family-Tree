@@ -49,7 +49,7 @@ export default function FamilyTree() {
           source: r.source_id.toString(),
           target: r.target_id.toString(),
           label: r.label || "",
-          type: "step", // 👈 luôn đi ngang/dọc theo handle
+          type: "step", // always horizontal/vertical
         }));
 
         setNodes(fetchedNodes);
@@ -63,10 +63,19 @@ export default function FamilyTree() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Add person
-  const handleAddPerson = async (name) => {
+  // Add person (now accepts an object with name, birth_date, death_date, avatar_url, optionally position_x/y)
+  const handleAddPerson = async (personData) => {
     try {
-      const res = await api.post("/persons", { name, position_x: 200, position_y: 200 });
+      const payload = {
+        name: personData.name,
+        birth_date: personData.birth_date ?? null,
+        death_date: personData.death_date ?? null,
+        avatar_url: personData.avatar_url ?? null,
+        position_x: personData.position_x ?? 200,
+        position_y: personData.position_y ?? 200,
+      };
+
+      const res = await api.post("/persons", payload);
       const p = res.data;
       const newNode = {
         id: p.id.toString(),
@@ -121,7 +130,7 @@ export default function FamilyTree() {
             source: created.source_id.toString(),
             target: created.target_id.toString(),
             label: created.label,
-            type: "step", // 👈 ép kiểu edge ngang/dọc
+            type: "step", // force step edges
           },
           eds
         )
@@ -152,10 +161,13 @@ export default function FamilyTree() {
     [setNodes]
   );
 
+  // Prepare persons list to pass to Sidebar (simple array of person objects)
+  const personsList = nodes.map((n) => n.data?.person).filter(Boolean);
+
   return (
     <div className="app-container" style={{ display: "flex", height: "100%" }}>
       <div className="sidebar">
-        <Sidebar onAddPerson={handleAddPerson} />
+        <Sidebar onAddPerson={handleAddPerson} persons={personsList} onDeletePerson={handleDeletePerson} />
       </div>
 
       <div className="flow-container" style={{ flex: 1, height: "100%" }}>
@@ -170,7 +182,7 @@ export default function FamilyTree() {
             onConnect={onConnect}
             connectionMode={ConnectionMode.Loose}
             fitView
-            defaultEdgeOptions={{ type: "step", animated: true }} // 👈 thay đổi ở đây
+            defaultEdgeOptions={{ type: "step", animated: true }}
           >
             <Background />
             <Controls />

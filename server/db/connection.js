@@ -6,6 +6,9 @@ dotenv.config()
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false, // cần thiết khi chạy trên cloud
+  },
 })
 
 pool.on('error', (err) => {
@@ -14,3 +17,4 @@ pool.on('error', (err) => {
 })
 
 export default pool
+

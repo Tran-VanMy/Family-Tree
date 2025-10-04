@@ -9,8 +9,6 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [loading, setLoading] = useState(false)
-
-  // Mới: gender + notes
   const [gender, setGender] = useState('') // '', 'male', 'female', 'other'
   const [notes, setNotes] = useState('')
 
@@ -51,7 +49,6 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
         avatar_url: avatarPreview ?? null,
         position_x: 200,
         position_y: 200,
-        // thêm gender và notes (tùy chọn)
         gender: gender || null,
         notes: notes || null,
       }

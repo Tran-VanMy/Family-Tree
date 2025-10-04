@@ -21,8 +21,7 @@ export default function PersonNode({ data }) {
   }
 
   return (
-    // Mình dùng onDoubleClick để tránh xung đột với drag/connect.
-    // Nếu bạn muốn mở trên single click, đổi onDoubleClick -> onClick
+    // dùng onDoubleClick để tránh xung đột với drag/connect.
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}

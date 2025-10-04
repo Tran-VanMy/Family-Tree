@@ -138,7 +138,7 @@ export default function FamilyTree() {
       const payload = {
         source_id: pendingEdge.source,
         target_id: pendingEdge.target,
-        type: relation.type, // ví dụ 'spouse' / 'parent_child' / 'sibling'
+        type: relation.type,
         label: relation.label,
       };
 

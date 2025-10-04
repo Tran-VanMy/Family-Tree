@@ -12,7 +12,6 @@ import {
   MenuItem,
 } from "@mui/material"
 
-// Chỉ 4 tuỳ chọn như bạn yêu cầu.
 // Mỗi mục có `id` (unique), `label` (hiển thị) và `type` (mapping tới enum DB)
 const RELATION_OPTIONS = [
   { id: "married", label: "Kết Hôn", type: "spouse" },

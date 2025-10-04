@@ -8,13 +8,13 @@ WORKDIR /app
 COPY server/package*.json ./server/
 
 # Cài dependencies trong thư mục server
-RUN cd server && npm install
+RUN cd server && npm install --production
 
 # Copy toàn bộ project vào container
 COPY . .
 
-# Mở port cho Railway
-EXPOSE 3000
+# Railway sẽ set PORT, default là 4000
+EXPOSE 4000
 
-# Lệnh khởi chạy server
+# Start server
 CMD ["npm", "start", "--prefix", "server"]

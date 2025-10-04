@@ -1,9 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const ctrl = require('../controllers/relationController');
+// server/routes/relations.js
+import express from 'express'
+import * as ctrl from '../controllers/relationController.js'
 
-router.get('/', ctrl.getAll);
-router.post('/', ctrl.create);
-router.delete('/:id', ctrl.remove);
+const router = express.Router()
 
-module.exports = router;
+router.get('/', ctrl.getAll)
+router.post('/', ctrl.create)
+router.delete('/:id', ctrl.remove)
+
+export default router

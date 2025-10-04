@@ -1,10 +1,12 @@
-const express = require('express');
-const router = express.Router();
-const ctrl = require('../controllers/personController');
+// server/routes/persons.js
+import express from 'express'
+import * as ctrl from '../controllers/personController.js'
 
-router.get('/', ctrl.getAll);
-router.post('/', ctrl.create);
-router.patch('/:id', ctrl.update);
-router.delete('/:id', ctrl.softDelete);
+const router = express.Router()
 
-module.exports = router;
+router.get('/', ctrl.getAll)
+router.post('/', ctrl.create)
+router.patch('/:id', ctrl.update)
+router.delete('/:id', ctrl.softDelete)
+
+export default router

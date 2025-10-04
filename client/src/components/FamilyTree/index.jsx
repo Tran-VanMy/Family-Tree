@@ -14,6 +14,7 @@ import api from "../../services/api";
 import PersonNode from "./PersonNode";
 import Sidebar from "../Sidebar";
 import RelationModal from "../RelationModal";
+import PersonDetailModal from "../PersonDetailModal"; // mới import modal chi tiết
 import "./FamilyTree.css";
 
 const nodeTypes = { person: PersonNode };
@@ -21,8 +22,12 @@ const nodeTypes = { person: PersonNode };
 export default function FamilyTree() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [pendingEdge, setPendingEdge] = useState(null); // edge đang chờ nhập label
+  const [pendingEdge, setPendingEdge] = useState(null); // edge đang chờ nhập label/type
   const [openModal, setOpenModal] = useState(false);
+
+  // Mới: selected person để hiển thị modal chi tiết
+  const [selectedPerson, setSelectedPerson] = useState(null);
+  const [openPersonModal, setOpenPersonModal] = useState(false);
 
   // Load persons + relations
   useEffect(() => {
@@ -41,6 +46,11 @@ export default function FamilyTree() {
           data: {
             person: p,
             onDelete: handleDeletePerson,
+            // onOpen để mở modal chi tiết của person
+            onOpen: () => {
+              setSelectedPerson(p);
+              setOpenPersonModal(true);
+            },
           },
         }));
 
@@ -63,7 +73,7 @@ export default function FamilyTree() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Add person (now accepts an object with name, birth_date, death_date, avatar_url, optionally position_x/y)
+  // Add person (now accepts an object with name, birth_date, death_date, avatar_url, optionally position_x/y, gender, notes)
   const handleAddPerson = async (personData) => {
     try {
       const payload = {
@@ -73,6 +83,8 @@ export default function FamilyTree() {
         avatar_url: personData.avatar_url ?? null,
         position_x: personData.position_x ?? 200,
         position_y: personData.position_y ?? 200,
+        gender: personData.gender ?? null,
+        notes: personData.notes ?? null,
       };
 
       const res = await api.post("/persons", payload);
@@ -81,7 +93,14 @@ export default function FamilyTree() {
         id: p.id.toString(),
         type: "person",
         position: { x: p.position_x ?? 200, y: p.position_y ?? 200 },
-        data: { person: p, onDelete: handleDeletePerson },
+        data: {
+          person: p,
+          onDelete: handleDeletePerson,
+          onOpen: () => {
+            setSelectedPerson(p);
+            setOpenPersonModal(true);
+          },
+        },
       };
       setNodes((nds) => nds.concat(newNode));
       return p;
@@ -105,19 +124,22 @@ export default function FamilyTree() {
     [setNodes, setEdges]
   );
 
-  // Khi nối node → mở modal để nhập label
+  // Khi nối node → mở modal để nhập label/type
   const onConnect = useCallback((params) => {
     setPendingEdge(params);
     setOpenModal(true);
   }, []);
 
-  // Lưu quan hệ sau khi nhập label
-  const handleSaveRelation = async (label) => {
+  // Lưu quan hệ sau khi nhập label/type
+  // Lưu ý: onSave từ RelationModal giờ trả về { type, label }
+  const handleSaveRelation = async (relation) => {
     try {
+      if (!pendingEdge) return;
       const payload = {
         source_id: pendingEdge.source,
         target_id: pendingEdge.target,
-        label,
+        type: relation.type, // ví dụ 'spouse' / 'parent_child' / 'sibling'
+        label: relation.label,
       };
 
       const res = await api.post("/relations", payload);
@@ -191,8 +213,21 @@ export default function FamilyTree() {
           {/* Modal nhập quan hệ */}
           <RelationModal
             open={openModal}
-            onClose={() => setOpenModal(false)}
+            onClose={() => {
+              setOpenModal(false)
+              setPendingEdge(null)
+            }}
             onSave={handleSaveRelation}
+          />
+
+          {/* Modal hiển thị chi tiết person */}
+          <PersonDetailModal
+            open={openPersonModal}
+            onClose={() => {
+              setOpenPersonModal(false)
+              setSelectedPerson(null)
+            }}
+            person={selectedPerson}
           />
         </ReactFlowProvider>
       </div>

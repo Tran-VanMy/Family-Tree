@@ -6,7 +6,6 @@
 
 .sidebar {
   width: 250px;
-  padding: 16px;
   background: #f7f7f7;   /* nền sáng để nhìn rõ */
   border-right: 1px solid #ddd;
   display: flex;

@@ -6,6 +6,7 @@ import { FiTrash2 } from 'react-icons/fi'
 export default function PersonNode({ data }) {
   const person = data?.person
   const onDelete = data?.onDelete
+  const onOpen = data?.onOpen // hàm mở modal chi tiết nếu có
 
   const [hover, setHover] = useState(false)
 
@@ -20,9 +21,12 @@ export default function PersonNode({ data }) {
   }
 
   return (
+    // Mình dùng onDoubleClick để tránh xung đột với drag/connect.
+    // Nếu bạn muốn mở trên single click, đổi onDoubleClick -> onClick
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onDoubleClick={() => onOpen && onOpen(person)}
       style={{
         width: 140,
         textAlign: 'center',
@@ -31,6 +35,7 @@ export default function PersonNode({ data }) {
         background: 'white',
         boxShadow: '0 1px 6px rgba(0,0,0,0.12)',
         position: 'relative',
+        cursor: 'pointer',
       }}
     >
       {/* Top */}
@@ -51,7 +56,7 @@ export default function PersonNode({ data }) {
       />
 
       {/* Right */}
-      <Handle
+      {/* <Handle
         type="source"
         position={Position.Right}
         id="right"
@@ -64,10 +69,10 @@ export default function PersonNode({ data }) {
           position: 'absolute',
           marginTop: -6,
         }}
-      />
+      /> */}
 
       {/* Bottom */}
-      <Handle
+      {/* <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
@@ -80,10 +85,10 @@ export default function PersonNode({ data }) {
           position: 'absolute',
           marginLeft: -6,
         }}
-      />
+      /> */}
 
       {/* Left */}
-      <Handle
+      {/* <Handle
         type="source"
         position={Position.Left}
         id="left"
@@ -96,7 +101,7 @@ export default function PersonNode({ data }) {
           position: 'absolute',
           marginTop: -6,
         }}
-      />
+      /> */}
 
       <div
         style={{

@@ -10,6 +10,10 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  // Mới: gender + notes
+  const [gender, setGender] = useState('') // '', 'male', 'female', 'other'
+  const [notes, setNotes] = useState('')
+
   const readFileAsDataURL = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -47,6 +51,9 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
         avatar_url: avatarPreview ?? null,
         position_x: 200,
         position_y: 200,
+        // thêm gender và notes (tùy chọn)
+        gender: gender || null,
+        notes: notes || null,
       }
       await onAddPerson(payload)
       setName('')
@@ -54,6 +61,8 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
       setDeathYear('')
       setAvatarFile(null)
       setAvatarPreview(null)
+      setGender('')
+      setNotes('')
     } catch (err) {
       console.error(err)
       alert('Lỗi khi thêm người')
@@ -114,7 +123,7 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
           />
         </div>
 
-        <div style={{ marginBottom: 8 }}>
+        {/* <div style={{ marginBottom: 8 }}>
           <label style={{ display: 'block', marginBottom: 6 }}>Avatar (tùy chọn)</label>
           <input type="file" accept="image/*" onChange={handleAvatarChange} />
           {avatarPreview && (
@@ -122,6 +131,26 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
               <img src={avatarPreview} alt="preview" style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover' }} />
             </div>
           )}
+        </div> */}
+
+        {/* Mới: gender + notes */}
+        <div className="flex flex-wrap space-y-2">
+          <select
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', flex: 1 }}
+          >
+            <option value=''>Giới tính (tùy chọn)</option>
+            <option value='Nam'>Nam</option>
+            <option value='Nữ'>Nữ</option>
+            <option value='Khác'>Khác</option>
+          </select>
+          <input
+            placeholder="Ghi chú ngắn (tùy chọn)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', flex: 1 }}
+          />
         </div>
 
         <button

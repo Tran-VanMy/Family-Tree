@@ -1,17 +1,18 @@
-// family-tree/client/src/components/Sidebar/index.jsx
+// client/src/components/Sidebar/index.jsx
 import React, { useState } from 'react'
 import { FiTrash2 } from 'react-icons/fi'
 
-export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
+export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onOpenPerson }) {
   const [name, setName] = useState('')
   const [birthYear, setBirthYear] = useState('')
   const [deathYear, setDeathYear] = useState('')
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [gender, setGender] = useState('') // '', 'male', 'female', 'other'
+  const [gender, setGender] = useState('')
   const [notes, setNotes] = useState('')
 
+  // Đọc file ảnh base64 để hiển thị preview
   const readFileAsDataURL = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -23,14 +24,10 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
 
   const handleAvatarChange = async (e) => {
     const f = e.target.files?.[0]
-    if (!f) {
-      setAvatarFile(null)
-      setAvatarPreview(null)
-      return
-    }
-    setAvatarFile(f)
+    if (!f) return setAvatarPreview(null)
     try {
       const dataUrl = await readFileAsDataURL(f)
+      setAvatarFile(f)
       setAvatarPreview(dataUrl)
     } catch (err) {
       console.error('Failed to read file', err)
@@ -87,19 +84,20 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
   }
 
   return (
-    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <h3 style={{ marginTop: 0 }}>Controls</h3>
+    <div className="flex flex-col h-full">
+      {/* --- Tiêu đề --- */}
+      <h3 className="mt-0 mb-2 text-lg font-semibold text-gray-800">Controls</h3>
 
-      {/* Form cố định trên đầu */}
-      <form onSubmit={handleSubmit} style={{ marginBottom: 12 }}>
+      {/* --- Form thêm người --- */}
+      <form onSubmit={handleSubmit} className="mb-3">
         <input
-          style={{ padding: 8, width: '100%', marginBottom: 8, borderRadius: 6, border: '1px solid #ccc' }}
+          className="w-full p-2.5 mb-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
           placeholder="Tên người"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <div className="flex gap-2 mb-2">
           <input
             type="number"
             min="1000"
@@ -107,132 +105,92 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson }) {
             placeholder="Năm sinh"
             value={birthYear}
             onChange={(e) => setBirthYear(e.target.value)}
-            style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', flex: 1 }}
+            className="flex-1 p-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
           <input
             type="number"
             min="1000"
             max="3000"
-            placeholder="Năm mất (tùy chọn)"
+            placeholder="Năm mất"
             value={deathYear}
             onChange={(e) => setDeathYear(e.target.value)}
-            style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', flex: 1 }}
+            className="flex-1 p-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
 
-        {/* <div style={{ marginBottom: 8 }}>
-          <label style={{ display: 'block', marginBottom: 6 }}>Avatar (tùy chọn)</label>
-          <input type="file" accept="image/*" onChange={handleAvatarChange} />
-          {avatarPreview && (
-            <div style={{ marginTop: 8 }}>
-              <img src={avatarPreview} alt="preview" style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover' }} />
-            </div>
-          )}
-        </div> */}
-
-        {/* Mới: gender + notes */}
-        <div className="flex flex-wrap space-y-2">
+        {/* --- Giới tính & ghi chú --- */}
+        <div className="flex flex-wrap gap-2 mb-2">
           <select
             value={gender}
             onChange={(e) => setGender(e.target.value)}
-            style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', flex: 1 }}
+            className="flex-1 p-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
-            <option value=''>Giới tính (tùy chọn)</option>
-            <option value='Nam'>Nam</option>
-            <option value='Nữ'>Nữ</option>
-            <option value='Khác'>Khác</option>
+            <option value="">Giới tính (tùy chọn)</option>
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+            <option value="Khác">Khác</option>
           </select>
+
           <input
-            placeholder="Ghi chú ngắn (tùy chọn)"
+            placeholder="Ghi chú ngắn"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', flex: 1 }}
+            className="flex-1 p-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          style={{
-            background: '#2563eb',
-            color: 'white',
-            padding: '8px 12px',
-            borderRadius: 6,
-            border: 'none',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            width: '100%',
-            marginTop: 8,
-          }}
+          className={`w-full py-2.5 rounded-md font-semibold text-white transition cursor-pointer
+          ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
         >
           {loading ? 'Đang thêm...' : 'Thêm người'}
         </button>
       </form>
 
-      {/* Danh sách có scroll */}
-      <div style={{ marginTop: 12, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <h4 style={{ margin: '8px 0' }}>Danh sách người</h4>
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
-          {persons.length === 0 && <div style={{ color: '#666' }}>Chưa có người nào</div>}
+      {/* --- Danh sách người --- */}
+      <div className="flex flex-col flex-1 min-h-0 mt-3">
+        <h4 className="mb-2 text-base font-semibold text-gray-700">Danh sách người</h4>
+
+        <div className="flex flex-col flex-1 gap-2 pr-1 overflow-y-auto">
+          {persons.length === 0 && <div className="text-gray-500 text-sm">Chưa có người nào</div>}
+
           {persons.map((p) => (
             <div
               key={p.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8,
-                width: '100%',
-                padding: 8,
-                borderRadius: 8,
-                background: '#fff',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-              }}
+              className="flex items-center justify-between w-full p-2.5 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 9999,
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: '#f3f4f6',
-                  fontWeight: 600,
-                }}>
+              {/* --- Thông tin người --- */}
+              <div
+                className="flex items-center gap-3 flex-1 cursor-pointer"
+                onClick={() => onOpenPerson && onOpenPerson(p)}
+              >
+                <div className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 font-semibold text-gray-800 flex-shrink-0">
                   {p.avatar_url ? (
-                    <img src={p.avatar_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img
+                      src={p.avatar_url}
+                      alt={p.name}
+                      className="object-cover w-full h-full"
+                    />
                   ) : (
                     <div>{p.name?.charAt(0) ?? '?'}</div>
                   )}
                 </div>
 
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div>
-                  <div style={{ fontSize: 12, color: '#666' }}>
-                    {renderYear(p.birth_date, p.death_date)}
-                  </div>
+                <div className="text-left flex-1">
+                  <div className="text-[13px] font-semibold text-gray-800">{p.name}</div>
+                  <div className="text-[12px] text-gray-500">{renderYear(p.birth_date, p.death_date)}</div>
                 </div>
               </div>
 
-              <div>
-                <button
-                  onClick={() => handleRemove(p.id)}
-                  style={{
-                    background: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    padding: '6px 8px',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <FiTrash2 />
-                </button>
-              </div>
+              {/* --- Nút xóa --- */}
+              <button
+                onClick={() => handleRemove(p.id)}
+                className="ml-3 flex items-center justify-center px-2.5 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md transition cursor-pointer"
+              >
+                <FiTrash2 />
+              </button>
             </div>
           ))}
         </div>

@@ -13,21 +13,30 @@ import "reactflow/dist/style.css";
 import api from "../../services/api";
 import PersonNode from "./PersonNode";
 import Sidebar from "../Sidebar";
+import RightSidebar from "../RightSidebar";
 import RelationModal from "../RelationModal";
-import PersonDetailModal from "../PersonDetailModal"; // mới import modal chi tiết
+import PersonDetailModal from "../PersonDetailModal";
 import "./FamilyTree.css";
+import { useNavigate } from "react-router-dom";
 
 const nodeTypes = { person: PersonNode };
 
 export default function FamilyTree() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [pendingEdge, setPendingEdge] = useState(null); // edge đang chờ nhập label/type
+  const [pendingEdge, setPendingEdge] = useState(null);
   const [openModal, setOpenModal] = useState(false);
 
-  // Mới: selected person để hiển thị modal chi tiết
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [openPersonModal, setOpenPersonModal] = useState(false);
+
+  const navigate = useNavigate();
+
+  // If no user -> redirect to login
+  useEffect(() => {
+    const userStr = localStorage.getItem('ft_user')
+    if (!userStr) navigate('/login')
+  }, [navigate])
 
   // Load persons + relations
   useEffect(() => {
@@ -46,11 +55,6 @@ export default function FamilyTree() {
           data: {
             person: p,
             onDelete: handleDeletePerson,
-            // onOpen để mở modal chi tiết của person
-            onOpen: () => {
-              setSelectedPerson(p);
-              setOpenPersonModal(true);
-            },
           },
         }));
 
@@ -59,10 +63,26 @@ export default function FamilyTree() {
           source: r.source_id.toString(),
           target: r.target_id.toString(),
           label: r.label || "",
-          type: "step", // always horizontal/vertical
+          type: "step",
         }));
 
         setNodes(fetchedNodes);
+        setNodes((nds) =>
+          nds.map((node) => ({
+            ...node,
+            data: {
+              ...node.data,
+              onOpen: () => {
+                // luôn tìm person mới nhất theo id
+                const latest = nds.find((n) => n.id === node.id);
+                const personData = latest ? latest.data.person : node.data.person;
+                setSelectedPerson(personData);
+                setOpenPersonModal(true);
+              },
+            },
+          }))
+        );
+
         setEdges(fetchedEdges);
       } catch (err) {
         console.error("Error loading data", err);
@@ -73,7 +93,7 @@ export default function FamilyTree() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Add person (now accepts an object with name, birth_date, death_date, avatar_url, optionally position_x/y, gender, notes)
+  // Add person
   const handleAddPerson = async (personData) => {
     try {
       const payload = {
@@ -124,14 +144,12 @@ export default function FamilyTree() {
     [setNodes, setEdges]
   );
 
-  // Khi nối node → mở modal để nhập label/type
+  // Connect -> open relation modal
   const onConnect = useCallback((params) => {
     setPendingEdge(params);
     setOpenModal(true);
   }, []);
 
-  // Lưu quan hệ sau khi nhập label/type
-  // Lưu ý: onSave từ RelationModal giờ trả về { type, label }
   const handleSaveRelation = async (relation) => {
     try {
       if (!pendingEdge) return;
@@ -152,7 +170,7 @@ export default function FamilyTree() {
             source: created.source_id.toString(),
             target: created.target_id.toString(),
             label: created.label,
-            type: "step", // force step edges
+            type: "step",
           },
           eds
         )
@@ -162,10 +180,12 @@ export default function FamilyTree() {
       setPendingEdge(null);
     } catch (err) {
       console.error("Create relation failed", err);
+      setOpenModal(false);
+      setPendingEdge(null);
     }
   };
 
-  // Lưu vị trí node khi drag
+  // Update node position when dragging
   const onNodeDragStop = useCallback(
     async (event, node) => {
       try {
@@ -183,16 +203,75 @@ export default function FamilyTree() {
     [setNodes]
   );
 
-  // Prepare persons list to pass to Sidebar (simple array of person objects)
   const personsList = nodes.map((n) => n.data?.person).filter(Boolean);
 
+  // Update person (called from PersonDetailModal)
+  const handleUpdatePerson = async (id, payload) => {
+    try {
+      const res = await api.patch(`/persons/${id}`, payload);
+      const updated = res.data;
+
+      // Cập nhật node trong cây
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === id ? { ...n, data: { ...n.data, person: updated } } : n
+        )
+      );
+
+      // Cập nhật selectedPerson để modal hiển thị dữ liệu mới nếu mở lại
+      setSelectedPerson((prev) =>
+        prev && prev.id === id ? updated : prev
+      );
+
+      // Trả về dữ liệu mới (để modal có thể dùng nếu muốn)
+      return updated;
+    } catch (err) {
+      console.error("Update person failed", err);
+      throw err;
+    }
+  };
+
+
+  const handleLogout = () => {
+    localStorage.removeItem('ft_user')
+    localStorage.removeItem('ft_tree')
+    navigate('/login')
+  }
+
+  // //  Luôn đồng bộ lại hàm onOpen của mỗi node để modal luôn thấy dữ liệu mới nhất
+  // useEffect(() => {
+  //   setNodes((nds) =>
+  //     nds.map((node) => ({
+  //       ...node,
+  //       data: {
+  //         ...node.data,
+  //         onOpen: () => {
+  //           // lấy person mới nhất từ state hiện tại
+  //           const latest = nds.find((n) => n.id === node.id);
+  //           const personData = latest ? latest.data.person : node.data.person;
+  //           setSelectedPerson(personData);
+  //           setOpenPersonModal(true);
+  //         },
+  //       },
+  //     }))
+  //   );
+  // }, [nodes]);
+
+
   return (
-    <div className="app-container" style={{ display: "flex", height: "100%" }}>
+    <div className="app-container">
       <div className="sidebar">
-        <Sidebar onAddPerson={handleAddPerson} persons={personsList} onDeletePerson={handleDeletePerson} />
+        <Sidebar
+          onAddPerson={handleAddPerson}
+          persons={personsList}
+          onDeletePerson={handleDeletePerson}
+          onOpenPerson={(p) => {
+            setSelectedPerson(p)
+            setOpenPersonModal(true)
+          }} />
       </div>
 
-      <div className="flow-container" style={{ flex: 1, height: "100%" }}>
+      <div className="flow-container">
         <ReactFlowProvider>
           <ReactFlow
             nodes={nodes}
@@ -210,7 +289,6 @@ export default function FamilyTree() {
             <Controls />
           </ReactFlow>
 
-          {/* Modal nhập quan hệ */}
           <RelationModal
             open={openModal}
             onClose={() => {
@@ -220,7 +298,6 @@ export default function FamilyTree() {
             onSave={handleSaveRelation}
           />
 
-          {/* Modal hiển thị chi tiết person */}
           <PersonDetailModal
             open={openPersonModal}
             onClose={() => {
@@ -228,8 +305,21 @@ export default function FamilyTree() {
               setSelectedPerson(null)
             }}
             person={selectedPerson}
+            onSave={handleUpdatePerson}
           />
         </ReactFlowProvider>
+      </div>
+
+      <div className="right-sidebar">
+        <RightSidebar
+          persons={personsList}
+          onDeletePerson={handleDeletePerson}
+          onOpenPerson={(p) => {
+            setSelectedPerson(p)
+            setOpenPersonModal(true)
+          }}
+          onLogout={handleLogout}
+        />
       </div>
     </div>
   );

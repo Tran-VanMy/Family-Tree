@@ -1,4 +1,3 @@
-// family-tree/client/src/components/FamilyTree/PersonNode.jsx
 import React, { useState } from 'react'
 import { Handle, Position } from 'reactflow'
 import { FiTrash2 } from 'react-icons/fi'
@@ -25,17 +24,8 @@ export default function PersonNode({ data }) {
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onDoubleClick={() => onOpen && onOpen(person)}
-      style={{
-        width: 140,
-        textAlign: 'center',
-        padding: 8,
-        borderRadius: 8,
-        background: 'white',
-        boxShadow: '0 1px 6px rgba(0,0,0,0.12)',
-        position: 'relative',
-        cursor: 'pointer',
-      }}
+      onDoubleClick={() => onOpen && onOpen()}
+      className="w-[140px] text-center p-2 rounded-lg bg-white shadow-md relative cursor-pointer"
     >
       {/* Top */}
       <Handle
@@ -102,33 +92,24 @@ export default function PersonNode({ data }) {
         }}
       /> */}
 
+      {/* Avatar */}
       <div
-        style={{
-          width: 64,
-          height: 64,
-          borderRadius: '9999px',
-          margin: '0 auto 8px auto',
-          overflow: 'hidden',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#f3f4f6',
-          fontWeight: 600,
-        }}
+        className="w-16 h-16 rounded-full mx-auto mb-2 overflow-hidden flex items-center justify-center bg-gray-100 font-semibold"
       >
         {person?.avatar_url ? (
           <img
             src={person.avatar_url}
             alt={person.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            className="w-full h-full object-cover"
           />
         ) : (
-          <div style={{ fontSize: 20 }}>{person?.name?.charAt(0) ?? '?'}</div>
+          <div className="text-[20px]">{person?.name?.charAt(0) ?? '?'}</div>
         )}
       </div>
 
-      <div style={{ fontSize: 13, fontWeight: 600 }}>{person?.name}</div>
-      <div style={{ fontSize: 11, color: '#666' }}>
+      {/* Tên + năm sinh/mất */}
+      <div className="text-[13px] font-semibold">{person?.name}</div>
+      <div className="text-[11px] text-gray-600">
         {(() => {
           const birthYear = person?.birth_date ? new Date(person.birth_date).getFullYear() : null
           const deathYear = person?.death_date ? new Date(person.death_date).getFullYear() : null

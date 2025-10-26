@@ -14,11 +14,11 @@ export default function RightSidebar({
 
   const handleLogout = () => {
     localStorage.removeItem("ft_user");
+    localStorage.removeItem("ft_family");
     onLogout && onLogout();
-    navigate("/login"); // chuyển hướng ngay
+    navigate("/login");
   };
 
-  // Lọc theo tên hoặc năm sinh
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return persons;
@@ -45,24 +45,21 @@ export default function RightSidebar({
 
   return (
     <div className="flex flex-col h-full w-64 bg-white border-l border-gray-200 p-4">
-      {/* --- User info --- */}
       <div className="flex flex-col gap-1">
         <div className="text-sm font-bold">Xin Chào {user?.username ?? "Khách"}</div>
         <div className="text-xs text-gray-500">{user?.email ?? ""}</div>
       </div>
 
-      {/* --- Search box --- */}
       <div className="mt-3">
         <input
           type="text"
           placeholder="Tìm theo tên hoặc năm sinh"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring focus:ring-blue-100"
+          className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
 
-      {/* --- List area --- */}
       <div className="flex-1 min-h-0 mt-3 overflow-y-auto flex flex-col gap-2 pr-1">
         {filtered.length === 0 && (
           <div className="text-gray-500 text-sm">Không có kết quả</div>
@@ -74,18 +71,9 @@ export default function RightSidebar({
             onClick={() => onOpenPerson && onOpenPerson(p)}
             className="flex items-center justify-between bg-white rounded-lg shadow-sm p-3 hover:bg-gray-50 transition cursor-pointer"
           >
-            {/* --- Person info --- */}
             <div className="flex items-center gap-3 flex-1">
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-semibold overflow-hidden flex-shrink-0">
-                {p.avatar_url ? (
-                  <img
-                    src={p.avatar_url}
-                    alt={p.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span>{p.name?.charAt(0) ?? "?"}</span>
-                )}
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-semibold overflow-hidden">
+                <span>{p.name?.charAt(0) ?? "?"}</span>
               </div>
 
               <div className="flex flex-col text-left flex-1">
@@ -96,14 +84,13 @@ export default function RightSidebar({
               </div>
             </div>
 
-            {/* --- Delete button --- */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 if (!window.confirm("Xóa người này?")) return;
                 onDeletePerson && onDeletePerson(p.id);
               }}
-              className="bg-red-500 text-white rounded-md p-2 hover:bg-red-600 transition flex items-center justify-center cursor-pointer"
+              className="bg-red-500 text-white rounded-md p-2 hover:bg-red-600"
               title="Xóa"
             >
               <FiTrash2 />
@@ -112,11 +99,10 @@ export default function RightSidebar({
         ))}
       </div>
 
-      {/* --- Footer --- */}
       <div className="mt-3">
         <button
           onClick={handleLogout}
-          className="w-full bg-red-500 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-600 transition cursor-pointer"
+          className="w-full bg-red-500 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-600"
         >
           Đăng xuất
         </button>

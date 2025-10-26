@@ -16,10 +16,16 @@ export default function Register() {
     try {
       setLoading(true)
       const res = await api.post('/auth/register', { email, password, username })
-      const { user, tree } = res.data
-      // lưu user + tree để tiện dùng ngay
+      const user = res.data?.user
+      const family = res.data?.family ?? res.data?.tree ?? null
+
+      if (!user) return alert('Đăng ký nhưng không nhận user từ server')
+
       localStorage.setItem('ft_user', JSON.stringify(user))
-      if (tree && tree.id) localStorage.setItem('ft_tree', tree.id)
+      if (family) {
+        const fid = family.family_id ?? family.id
+        if (fid) localStorage.setItem('ft_family', String(fid))
+      }
       navigate('/app')
     } catch (err) {
       console.error(err)
@@ -30,8 +36,8 @@ export default function Register() {
   }
 
   return (
-    <div className="flex items-center justify-center h-screen p-4 bg-[#f6f7fb] text-[#111827] font-[Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial]">
-      <div className="w-[420px] bg-white rounded-xl shadow-[0_8px_24px_rgba(16,24,40,0.06)] p-6">
+    <div className="flex items-center justify-center h-screen p-4 bg-[#f6f7fb] text-[#111827]">
+      <div className="w-[420px] bg-white rounded-xl shadow p-6">
         <h2 className="m-0 mb-3 text-xl font-semibold">Đăng ký</h2>
         <p className="text-sm text-gray-500 mb-3">
           Hãy điều đầy đủ thông tin: Email - Tên - Mật khẩu để sử dụng dịch vụ
@@ -58,7 +64,7 @@ export default function Register() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <button
-            className="w-full px-3 py-2 rounded-lg border-none bg-blue-600 text-white cursor-pointer font-semibold disabled:opacity-70"
+            className="w-full px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold"
             type="submit"
             disabled={loading}
           >
@@ -69,7 +75,7 @@ export default function Register() {
         <div className="mt-3">
           <small className="text-gray-500 text-sm">
             Đã có tài khoản?{' '}
-            <Link to="/login" className="text-blue-600 underline cursor-pointer">
+            <Link to="/login" className="text-blue-600 underline">
               Đăng nhập
             </Link>
           </small>

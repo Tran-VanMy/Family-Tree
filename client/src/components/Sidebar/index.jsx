@@ -6,33 +6,9 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
   const [name, setName] = useState('')
   const [birthYear, setBirthYear] = useState('')
   const [deathYear, setDeathYear] = useState('')
-  const [avatarFile, setAvatarFile] = useState(null)
-  const [avatarPreview, setAvatarPreview] = useState(null)
   const [loading, setLoading] = useState(false)
   const [gender, setGender] = useState('')
   const [notes, setNotes] = useState('')
-
-  // Đọc file ảnh base64 để hiển thị preview
-  const readFileAsDataURL = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result)
-      reader.onerror = (e) => reject(e)
-      reader.readAsDataURL(file)
-    })
-  }
-
-  const handleAvatarChange = async (e) => {
-    const f = e.target.files?.[0]
-    if (!f) return setAvatarPreview(null)
-    try {
-      const dataUrl = await readFileAsDataURL(f)
-      setAvatarFile(f)
-      setAvatarPreview(dataUrl)
-    } catch (err) {
-      console.error('Failed to read file', err)
-    }
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -43,7 +19,6 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
         name: name.trim(),
         birth_date: birthYear ? `${birthYear}-01-01` : null,
         death_date: deathYear ? `${deathYear}-01-01` : null,
-        avatar_url: avatarPreview ?? null,
         position_x: 200,
         position_y: 200,
         gender: gender || null,
@@ -53,8 +28,6 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
       setName('')
       setBirthYear('')
       setDeathYear('')
-      setAvatarFile(null)
-      setAvatarPreview(null)
       setGender('')
       setNotes('')
     } catch (err) {
@@ -85,13 +58,11 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
 
   return (
     <div className="flex flex-col h-full">
-      {/* --- Tiêu đề --- */}
       <h3 className="mt-0 mb-2 text-lg font-semibold text-gray-800">Controls</h3>
 
-      {/* --- Form thêm người --- */}
       <form onSubmit={handleSubmit} className="mb-3">
         <input
-          className="w-full p-2.5 mb-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full p-2.5 mb-2 border rounded-md"
           placeholder="Tên người"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -105,7 +76,7 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
             placeholder="Năm sinh"
             value={birthYear}
             onChange={(e) => setBirthYear(e.target.value)}
-            className="flex-1 p-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="flex-1 p-2.5 border rounded-md"
           />
           <input
             type="number"
@@ -114,16 +85,15 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
             placeholder="Năm mất"
             value={deathYear}
             onChange={(e) => setDeathYear(e.target.value)}
-            className="flex-1 p-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="flex-1 p-2.5 border rounded-md"
           />
         </div>
 
-        {/* --- Giới tính & ghi chú --- */}
         <div className="flex flex-wrap gap-2 mb-2">
           <select
             value={gender}
             onChange={(e) => setGender(e.target.value)}
-            className="flex-1 p-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="flex-1 p-2.5 border rounded-md"
           >
             <option value="">Giới tính (tùy chọn)</option>
             <option value="Nam">Nam</option>
@@ -135,21 +105,19 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
             placeholder="Ghi chú ngắn"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="flex-1 p-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="flex-1 p-2.5 border rounded-md"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2.5 rounded-md font-semibold text-white transition cursor-pointer
-          ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+          className={`w-full py-2.5 rounded-md text-white ${loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'}`}
         >
           {loading ? 'Đang thêm...' : 'Thêm người'}
         </button>
       </form>
 
-      {/* --- Danh sách người --- */}
       <div className="flex flex-col flex-1 min-h-0 mt-3">
         <h4 className="mb-2 text-base font-semibold text-gray-700">Danh sách người</h4>
 
@@ -161,21 +129,12 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
               key={p.id}
               className="flex items-center justify-between w-full p-2.5 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition"
             >
-              {/* --- Thông tin người --- */}
               <div
                 className="flex items-center gap-3 flex-1 cursor-pointer"
                 onClick={() => onOpenPerson && onOpenPerson(p)}
               >
                 <div className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 font-semibold text-gray-800 flex-shrink-0">
-                  {p.avatar_url ? (
-                    <img
-                      src={p.avatar_url}
-                      alt={p.name}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <div>{p.name?.charAt(0) ?? '?'}</div>
-                  )}
+                  <div>{p.name?.charAt(0) ?? '?'}</div>
                 </div>
 
                 <div className="text-left flex-1">
@@ -184,10 +143,9 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
                 </div>
               </div>
 
-              {/* --- Nút xóa --- */}
               <button
                 onClick={() => handleRemove(p.id)}
-                className="ml-3 flex items-center justify-center px-2.5 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md transition cursor-pointer"
+                className="ml-3 flex items-center justify-center px-2.5 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md"
               >
                 <FiTrash2 />
               </button>

@@ -1,4 +1,4 @@
-// family-tree/client/src/components/FamilyTree/index.jsx
+// client/src/components/FamilyTree/index.jsx
 import React, { useEffect, useCallback, useState } from "react";
 import ReactFlow, {
   Background,
@@ -38,42 +38,58 @@ export default function FamilyTree() {
     if (!userStr) navigate('/login')
   }, [navigate])
 
-  // Load persons + relations
+  // Load persons + relations (now fetch /persons, /marriages, /parent-child)
   useEffect(() => {
     const fetchData = async () => {
       try {
         const personsRes = await api.get("/persons");
-        const relationsRes = await api.get("/relations");
+        // fetch marriages and parent-child separately
+        const marriagesRes = await api.get("/marriages");
+        const parentChildRes = await api.get("/parent-child");
 
-        const fetchedNodes = personsRes.data.map((p) => ({
-          id: p.id.toString(),
-          type: "person",
-          position: {
-            x: typeof p.position_x === "number" ? p.position_x : Math.random() * 400,
-            y: typeof p.position_y === "number" ? p.position_y : Math.random() * 400,
-          },
-          data: {
-            person: p,
-            onDelete: handleDeletePerson,
-          },
-        }));
+        // normalize persons: backend returns person_id; map to id for frontend convenience
+        const fetchedNodes = (personsRes.data || []).map((p) => {
+          const id = String(p.person_id ?? p.id)
+          return {
+            id,
+            type: "person",
+            position: {
+              x: typeof p.position_x === "number" ? p.position_x : Math.random() * 400,
+              y: typeof p.position_y === "number" ? p.position_y : Math.random() * 400,
+            },
+            data: {
+              person: { ...p, id },
+              onDelete: handleDeletePerson,
+            },
+          }
+        })
 
-        const fetchedEdges = relationsRes.data.map((r) => ({
-          id: r.id.toString(),
-          source: r.source_id.toString(),
-          target: r.target_id.toString(),
-          label: r.label || "",
+        // marriages -> edges (spouse relations)
+        const marriageEdges = (marriagesRes.data || []).map((m) => ({
+          id: `m-${m.marriage_id}`,
+          source: String(m.spouse1_id),
+          target: String(m.spouse2_id),
+          label: m.note || (m.status ?? 'Kết hôn'),
           type: "step",
-        }));
+        }))
 
-        setNodes(fetchedNodes);
+        // parent_child -> edges
+        const pcEdges = (parentChildRes.data || []).map((pc) => ({
+          id: `pc-${pc.parent_child_id}`,
+          source: String(pc.parent_id),
+          target: String(pc.child_id),
+          label: pc.relationship || "",
+          type: "step",
+        }))
+
+        setNodes(fetchedNodes)
+        // set onOpen handlers so modal luôn lấy person từ current state
         setNodes((nds) =>
           nds.map((node) => ({
             ...node,
             data: {
               ...node.data,
               onOpen: () => {
-                // luôn tìm person mới nhất theo id
                 const latest = nds.find((n) => n.id === node.id);
                 const personData = latest ? latest.data.person : node.data.person;
                 setSelectedPerson(personData);
@@ -83,7 +99,7 @@ export default function FamilyTree() {
           }))
         );
 
-        setEdges(fetchedEdges);
+        setEdges([...marriageEdges, ...pcEdges])
       } catch (err) {
         console.error("Error loading data", err);
       }
@@ -100,7 +116,7 @@ export default function FamilyTree() {
         name: personData.name,
         birth_date: personData.birth_date ?? null,
         death_date: personData.death_date ?? null,
-        avatar_url: personData.avatar_url ?? null,
+        // avatar_url removed because server schema doesn't include it
         position_x: personData.position_x ?? 200,
         position_y: personData.position_y ?? 200,
         gender: personData.gender ?? null,
@@ -109,15 +125,17 @@ export default function FamilyTree() {
 
       const res = await api.post("/persons", payload);
       const p = res.data;
+      // normalize id
+      const id = String(p.person_id ?? p.id)
       const newNode = {
-        id: p.id.toString(),
+        id,
         type: "person",
         position: { x: p.position_x ?? 200, y: p.position_y ?? 200 },
         data: {
-          person: p,
+          person: { ...p, id },
           onDelete: handleDeletePerson,
           onOpen: () => {
-            setSelectedPerson(p);
+            setSelectedPerson({ ...p, id });
             setOpenPersonModal(true);
           },
         },
@@ -135,8 +153,8 @@ export default function FamilyTree() {
     async (id) => {
       try {
         await api.delete(`/persons/${id}`);
-        setNodes((nds) => nds.filter((n) => n.id !== id.toString()));
-        setEdges((eds) => eds.filter((e) => e.source !== id.toString() && e.target !== id.toString()));
+        setNodes((nds) => nds.filter((n) => n.id !== String(id)));
+        setEdges((eds) => eds.filter((e) => e.source !== String(id) && e.target !== String(id)));
       } catch (err) {
         console.error("Delete failed", err);
       }
@@ -150,40 +168,100 @@ export default function FamilyTree() {
     setOpenModal(true);
   }, []);
 
-  const handleSaveRelation = async (relation) => {
-    try {
-      if (!pendingEdge) return;
-      const payload = {
-        source_id: pendingEdge.source,
-        target_id: pendingEdge.target,
-        type: relation.type,
-        label: relation.label,
-      };
+const handleSaveRelation = async (relation) => {
+  try {
+    if (!pendingEdge) return;
+    const source = pendingEdge.source;
+    const target = pendingEdge.target;
 
-      const res = await api.post("/relations", payload);
-      const created = res.data;
+    let created = null;
+
+    // 💍 HÔN NHÂN
+    if (relation.type === "marriage") {
+      const res = await api.post("/marriages", {
+        spouse1_id: Number(source),
+        spouse2_id: Number(target),
+        status: relation.status || "Kết hôn",
+        note: relation.label || "",
+      });
+
+      created = res.data;
 
       setEdges((eds) =>
         addEdge(
           {
-            id: created.id.toString(),
-            source: created.source_id.toString(),
-            target: created.target_id.toString(),
-            label: created.label,
+            id: `m-${created.marriage_id}`,
+            source: String(created.spouse1_id),
+            target: String(created.spouse2_id),
+            label: created.status, // ✅ hiển thị “Kết hôn” hoặc “Ly hôn”
             type: "step",
           },
           eds
         )
       );
-
-      setOpenModal(false);
-      setPendingEdge(null);
-    } catch (err) {
-      console.error("Create relation failed", err);
-      setOpenModal(false);
-      setPendingEdge(null);
     }
-  };
+
+    // 👨‍👩‍👧 CHA MẸ - CON
+    else if (relation.type === "parent_child") {
+      const res = await api.post("/parent-child", {
+        parent_id: Number(source),
+        child_id: Number(target),
+        relationship:
+          relation.relationship?.trim() ||
+          relation.label?.trim() ||
+          "Con ruột",
+      });
+
+      created = res.data;
+
+      setEdges((eds) =>
+        addEdge(
+          {
+            id: `pc-${created.parent_child_id}`,
+            source: String(created.parent_id),
+            target: String(created.child_id),
+            label: created.relationship,
+            type: "step",
+          },
+          eds
+        )
+      );
+    }
+
+    // 🧩 fallback cho các loại khác
+    else {
+      const res = await api.post("/parent-child", {
+        parent_id: Number(source),
+        child_id: Number(target),
+        relationship: relation.label || "Quan hệ",
+      });
+      created = res.data;
+
+      setEdges((eds) =>
+        addEdge(
+          {
+            id: `pc-${created.parent_child_id}`,
+            source: String(created.parent_id),
+            target: String(created.child_id),
+            label: created.relationship,
+            type: "step",
+          },
+          eds
+        )
+      );
+    }
+
+    setOpenModal(false);
+    setPendingEdge(null);
+  } catch (err) {
+    console.error("❌ Create relation failed:", err);
+    setOpenModal(false);
+    setPendingEdge(null);
+  }
+};
+
+
+
 
   // Update node position when dragging
   const onNodeDragStop = useCallback(
@@ -209,21 +287,19 @@ export default function FamilyTree() {
   const handleUpdatePerson = async (id, payload) => {
     try {
       const res = await api.patch(`/persons/${id}`, payload);
-      const updated = res.data;
+      const updatedRaw = res.data;
+      const updated = { ...updatedRaw, id: String(updatedRaw.person_id ?? updatedRaw.id) };
 
-      // Cập nhật node trong cây
       setNodes((nds) =>
         nds.map((n) =>
-          n.id === id ? { ...n, data: { ...n.data, person: updated } } : n
+          n.id === String(id) ? { ...n, data: { ...n.data, person: updated } } : n
         )
       );
 
-      // Cập nhật selectedPerson để modal hiển thị dữ liệu mới nếu mở lại
       setSelectedPerson((prev) =>
-        prev && prev.id === id ? updated : prev
+        prev && String(prev.id) === String(id) ? updated : prev
       );
 
-      // Trả về dữ liệu mới (để modal có thể dùng nếu muốn)
       return updated;
     } catch (err) {
       console.error("Update person failed", err);
@@ -234,29 +310,10 @@ export default function FamilyTree() {
 
   const handleLogout = () => {
     localStorage.removeItem('ft_user')
+    localStorage.removeItem('ft_family')
     localStorage.removeItem('ft_tree')
     navigate('/login')
   }
-
-  // //  Luôn đồng bộ lại hàm onOpen của mỗi node để modal luôn thấy dữ liệu mới nhất
-  // useEffect(() => {
-  //   setNodes((nds) =>
-  //     nds.map((node) => ({
-  //       ...node,
-  //       data: {
-  //         ...node.data,
-  //         onOpen: () => {
-  //           // lấy person mới nhất từ state hiện tại
-  //           const latest = nds.find((n) => n.id === node.id);
-  //           const personData = latest ? latest.data.person : node.data.person;
-  //           setSelectedPerson(personData);
-  //           setOpenPersonModal(true);
-  //         },
-  //       },
-  //     }))
-  //   );
-  // }, [nodes]);
-
 
   return (
     <div className="app-container">

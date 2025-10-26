@@ -8,16 +8,17 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Attach user & tree headers automatically from localStorage
+// Attach user & family headers automatically from localStorage
 api.interceptors.request.use((cfg) => {
   try {
     const userStr = localStorage.getItem('ft_user')
-    const treeId = localStorage.getItem('ft_tree')
+    const familyId = localStorage.getItem('ft_family') || localStorage.getItem('ft_tree')
     if (userStr) {
       const user = JSON.parse(userStr)
-      if (user?.id) cfg.headers['x-user-id'] = user.id
+      if (user?.id) cfg.headers['x-user-id'] = String(user.id)
     }
-    if (treeId) cfg.headers['x-tree-id'] = treeId
+    // server expects x-family-id (we accept ft_family or legacy ft_tree)
+    if (familyId) cfg.headers['x-family-id'] = String(familyId)
   } catch (e) {
     // ignore
   }

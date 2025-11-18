@@ -2,13 +2,28 @@
 import React, { useState } from 'react'
 import { FiTrash2 } from 'react-icons/fi'
 
-export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onOpenPerson }) {
+export default function Sidebar({
+  onAddPerson,
+  persons = [],
+  onDeletePerson,
+  onOpenPerson,
+  // ✅ mới: quản lý branch families
+  families = [],
+  selectedFamilyId,
+  onSelectFamily,
+  onCreateFamily,
+  onRenameFamily,
+  onDeleteFamily,
+}) {
   const [name, setName] = useState('')
   const [birthYear, setBirthYear] = useState('')
   const [deathYear, setDeathYear] = useState('')
   const [loading, setLoading] = useState(false)
   const [gender, setGender] = useState('')
   const [notes, setNotes] = useState('')
+
+  // state cho tạo nhánh
+  const [newBranchName, setNewBranchName] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -38,28 +53,48 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
     }
   }
 
-  const handleRemove = async (id) => {
-    if (!window.confirm('Xóa người này?')) return
+  const handleCreateBranch = async (e) => {
+    e.preventDefault()
+    const n = newBranchName.trim()
+    if (!n) return
+    if (!onCreateFamily) return
     try {
-      await onDeletePerson(id)
+      await onCreateFamily(n)
+      setNewBranchName('')
     } catch (err) {
       console.error(err)
-      alert('Xóa thất bại')
+      alert('Tạo nhánh thất bại')
     }
   }
 
-  const renderYear = (birth_date, death_date) => {
-    const birthYear = birth_date ? new Date(birth_date).getFullYear() : null
-    const deathYear = death_date ? new Date(death_date).getFullYear() : null
-    if (birthYear && deathYear) return `${birthYear} - ${deathYear}`
-    if (birthYear) return `${birthYear}`
-    return ''
+  const handleRenameBranch = async (fam) => {
+    if (!onRenameFamily) return
+    const newName = window.prompt('Tên nhánh mới:', fam.name || '')
+    if (!newName || !newName.trim()) return
+    try {
+      await onRenameFamily(fam.family_id, newName.trim())
+    } catch (err) {
+      console.error(err)
+      alert('Đổi tên nhánh thất bại')
+    }
+  }
+
+  const handleDeleteBranch = async (fam) => {
+    if (!onDeleteFamily) return
+    if (!window.confirm(`Xóa nhánh "${fam.name}"?`)) return
+    try {
+      await onDeleteFamily(fam.family_id)
+    } catch (err) {
+      console.error(err)
+      alert('Xóa nhánh thất bại')
+    }
   }
 
   return (
     <div className="flex flex-col h-full">
       <h3 className="mt-0 mb-2 text-lg font-semibold text-gray-800">Controls</h3>
 
+      {/* Form thêm người */}
       <form onSubmit={handleSubmit} className="mb-3">
         <input
           className="w-full p-2.5 mb-2 border rounded-md"
@@ -112,43 +147,82 @@ export default function Sidebar({ onAddPerson, persons = [], onDeletePerson, onO
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2.5 rounded-md text-white ${loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+          className={`w-full py-2.5 rounded-md text-white cursor-pointer ${
+            loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+          }`}
         >
           {loading ? 'Đang thêm...' : 'Thêm người'}
         </button>
       </form>
 
+      {/* ✅ Phần mới: danh sách nhánh (branch families) */}
       <div className="flex flex-col flex-1 min-h-0 mt-3">
-        <h4 className="mb-2 text-base font-semibold text-gray-700">Danh sách người</h4>
+        <h4 className="mb-2 text-base font-semibold text-gray-700">
+          Các nhánh (branch families)
+        </h4>
+
+        {/* Form tạo nhánh mới (FULL WIDTH giống ô Thêm người) */}
+        <form onSubmit={handleCreateBranch} className="mb-3">
+          <input
+            className="w-full p-2.5 mb-2 border rounded-md text-sm"
+            placeholder="Tên nhánh mới"
+            value={newBranchName}
+            onChange={(e) => setNewBranchName(e.target.value)}
+          />
+
+          <button
+            type="submit"
+            className="w-full py-2.5 rounded-md bg-green-600 text-white text-sm font-semibold hover:bg-green-700 cursor-pointer"
+          >
+            Thêm nhánh mới
+          </button>
+        </form>
+
 
         <div className="flex flex-col flex-1 gap-2 pr-1 overflow-y-auto">
-          {persons.length === 0 && <div className="text-gray-500 text-sm">Chưa có người nào</div>}
+          {(!families || families.length === 0) && (
+            <div className="text-gray-500 text-sm">
+              Chưa có nhánh nào. Hãy tạo nhánh mới.
+            </div>
+          )}
 
-          {persons.map((p) => (
+          {families.map((fam) => (
             <div
-              key={p.id}
-              className="flex items-center justify-between w-full p-2.5 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition"
+              key={fam.family_id}
+              className={`flex items-center justify-between w-full p-2.5 bg-white rounded-lg shadow-sm transition ${
+                String(selectedFamilyId) === String(fam.family_id)
+                  ? 'border border-blue-500 bg-blue-50'
+                  : 'hover:bg-gray-50'
+              }`}
             >
               <div
-                className="flex items-center gap-3 flex-1 cursor-pointer"
-                onClick={() => onOpenPerson && onOpenPerson(p)}
+                className="flex flex-col flex-1 text-left cursor-pointer"
+                onClick={() => onSelectFamily && onSelectFamily(fam.family_id)}
               >
-                <div className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 font-semibold text-gray-800 flex-shrink-0">
-                  <div>{p.name?.charAt(0) ?? '?'}</div>
+                <div className="text-[13px] font-semibold text-gray-800 truncate">
+                  {fam.name || 'Unnamed branch'}
                 </div>
-
-                <div className="text-left flex-1">
-                  <div className="text-[13px] font-semibold text-gray-800">{p.name}</div>
-                  <div className="text-[12px] text-gray-500">{renderYear(p.birth_date, p.death_date)}</div>
+                <div className="text-[11px] text-gray-500 truncate">
+                  {fam.description || ''}
                 </div>
               </div>
 
-              <button
-                onClick={() => handleRemove(p.id)}
-                className="ml-3 flex items-center justify-center px-2.5 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md"
-              >
-                <FiTrash2 />
-              </button>
+              <div className="flex items-center gap-1 ml-2">
+                <button
+                  type="button"
+                  onClick={() => handleRenameBranch(fam)}
+                  className="px-2 py-1 text-xs rounded-md bg-yellow-500 text-white hover:bg-yellow-600 cursor-pointer"
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteBranch(fam)}
+                  className="px-2 py-1 text-xs rounded-md bg-red-500 text-white hover:bg-red-600 cursor-pointer"
+                >
+                  <FiTrash2 />
+                </button>
+              </div>
             </div>
           ))}
         </div>

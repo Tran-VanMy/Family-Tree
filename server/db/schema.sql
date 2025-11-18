@@ -1,91 +1,97 @@
--- ===============================================
--- DATABASE SCHEMA: FAMILY TREE APP
--- ===============================================
+-- ============================================================
+-- SCHEMA.SQL — FULL STRUCTURE FOR FAMILY TREE
+-- ============================================================
 
--- Enable UUID generation
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+DROP TABLE IF EXISTS relations CASCADE;
+DROP TABLE IF EXISTS parent_child CASCADE;
+DROP TABLE IF EXISTS marriages CASCADE;
+DROP TABLE IF EXISTS persons CASCADE;
+DROP TABLE IF EXISTS families CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
--- ===============================================
--- USERS TABLE
--- ===============================================
--- Stores authentication and basic profile info
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
-  username VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+-- ===========================
+-- USERS
+-- ===========================
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    username VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- ===============================================
--- FAMILY TREES TABLE
--- ===============================================
--- Each user can own multiple family trees
-CREATE TABLE IF NOT EXISTS family_trees (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL,
-  description TEXT,
-  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+-- ===========================
+-- FAMILIES (branch trees)
+-- ===========================
+CREATE TABLE families (
+    family_id SERIAL PRIMARY KEY,
+    owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- ===============================================
--- PERSONS TABLE
--- ===============================================
--- Each person belongs to a specific family tree
-CREATE TABLE IF NOT EXISTS persons (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tree_id UUID NOT NULL REFERENCES family_trees(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  birth_date DATE,
-  death_date DATE,
-  avatar_url TEXT,
-  notes TEXT,
-  gender VARCHAR(10),
-  position_x DOUBLE PRECISION,
-  position_y DOUBLE PRECISION,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  is_deleted BOOLEAN DEFAULT FALSE
+-- ===========================
+-- PERSONS
+-- ===========================
+CREATE TABLE persons (
+    person_id SERIAL PRIMARY KEY,
+    family_id INTEGER NOT NULL REFERENCES families(family_id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    gender VARCHAR(20),
+    birth_date DATE,
+    death_date DATE,
+    notes TEXT,
+    position_x INTEGER DEFAULT 200,
+    position_y INTEGER DEFAULT 200,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- ===============================================
--- RELATION TYPES ENUM
--- ===============================================
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'relation_type') THEN
-    CREATE TYPE relation_type AS ENUM (
-      'parent_child',
-      'spouse',
-      'sibling',
-      'custom'
-    );
-  END IF;
-END$$;
-
--- ===============================================
--- RELATIONS TABLE
--- ===============================================
--- Describes how two persons in the same tree are related
-CREATE TABLE IF NOT EXISTS relations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tree_id UUID NOT NULL REFERENCES family_trees(id) ON DELETE CASCADE,
-  source_id UUID NOT NULL REFERENCES persons(id) ON DELETE CASCADE,
-  target_id UUID NOT NULL REFERENCES persons(id) ON DELETE CASCADE,
-  type relation_type NOT NULL,
-  label TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  CONSTRAINT unique_relation UNIQUE (source_id, target_id, type)
+-- ===========================
+-- MARRIAGES
+-- ===========================
+CREATE TABLE marriages (
+    marriage_id SERIAL PRIMARY KEY,
+    spouse1_id INTEGER NOT NULL REFERENCES persons(person_id) ON DELETE CASCADE,
+    spouse2_id INTEGER NOT NULL REFERENCES persons(person_id) ON DELETE CASCADE,
+    start_date DATE,
+    end_date DATE,
+    status VARCHAR(50),
+    note VARCHAR(255),
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- ===============================================
--- INDEXES (for performance)
--- ===============================================
-CREATE INDEX IF NOT EXISTS idx_persons_tree_id ON persons(tree_id);
-CREATE INDEX IF NOT EXISTS idx_relations_tree_id ON relations(tree_id);
-CREATE INDEX IF NOT EXISTS idx_family_trees_owner_id ON family_trees(owner_id);
+-- Improve speed
+CREATE INDEX idx_marriages_s1 ON marriages(spouse1_id);
+CREATE INDEX idx_marriages_s2 ON marriages(spouse2_id);
 
--- ===============================================
--- DONE
--- ===============================================
+-- ===========================
+-- PARENT - CHILD RELATION
+-- (Only 3 valid types: Con ruột / Con riêng / Con nuôi)
+-- ===========================
+CREATE TABLE parent_child (
+    parent_child_id SERIAL PRIMARY KEY,
+    parent_id INTEGER NOT NULL REFERENCES persons(person_id) ON DELETE CASCADE,
+    child_id INTEGER NOT NULL REFERENCES persons(person_id) ON DELETE CASCADE,
+    relationship VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_parent_child_parent ON parent_child(parent_id);
+CREATE INDEX idx_parent_child_child ON parent_child(child_id);
+
+-- ===========================
+-- OTHER RELATIONS
+-- (Anh em / Chị em / Anh kế / Họ hàng / Em kế ...)
+-- ===========================
+CREATE TABLE relations (
+    relation_id SERIAL PRIMARY KEY,
+    person1_id INTEGER NOT NULL REFERENCES persons(person_id) ON DELETE CASCADE,
+    person2_id INTEGER NOT NULL REFERENCES persons(person_id) ON DELETE CASCADE,
+    relationship VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_relations_person1 ON relations(person1_id);
+CREATE INDEX idx_relations_person2 ON relations(person2_id);

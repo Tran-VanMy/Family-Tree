@@ -22,7 +22,7 @@ export const register = async (req, res) => {
     const famRes = await pool.query(
       `INSERT INTO families (owner_id, name, description) VALUES ($1,$2,$3)
        RETURNING family_id, name, description, owner_id, created_at`,
-      [user.id, 'My Family', 'Root family']
+      [user.id, 'default families', 'Root family'] // ✅ đổi tên mặc định
     )
     const family = famRes.rows[0]
 

@@ -7,7 +7,9 @@ export const getAll = async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT family_id, name, description, owner_id, created_at
-       FROM families WHERE owner_id=$1 ORDER BY created_at`,
+       FROM families
+       WHERE owner_id = $1
+       ORDER BY created_at`,
       [userId]
     )
     res.json(result.rows)
@@ -20,17 +22,54 @@ export const getAll = async (req, res) => {
 export const create = async (req, res) => {
   const userId = getUserId(req)
   const { name, description } = req.body
+  if (!userId) return res.status(401).json({ error: 'Missing x-user-id header' })
   if (!name) return res.status(400).json({ error: 'Missing name' })
   try {
     const result = await pool.query(
       `INSERT INTO families (owner_id, name, description)
-       VALUES ($1,$2,$3) RETURNING family_id,name,description,owner_id,created_at`,
+       VALUES ($1,$2,$3)
+       RETURNING family_id,name,description,owner_id,created_at`,
       [userId, name, description ?? '']
     )
     res.status(201).json(result.rows[0])
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Create family failed' })
+  }
+}
+
+// ✅ mới: đổi tên / cập nhật mô tả nhánh
+export const rename = async (req, res) => {
+  const userId = getUserId(req)
+  const { id } = req.params
+  const { name, description } = req.body
+
+  if (!userId) return res.status(401).json({ error: 'Missing x-user-id header' })
+  if (!name) return res.status(400).json({ error: 'Missing name' })
+
+  try {
+    const row = await pool.query(
+      `SELECT owner_id FROM families WHERE family_id=$1`,
+      [id]
+    )
+    if (row.rows.length === 0) return res.status(404).json({ error: 'Family not found' })
+    if (row.rows[0].owner_id !== Number(userId)) {
+      return res.status(403).json({ error: 'Not allowed' })
+    }
+
+    const result = await pool.query(
+      `UPDATE families
+       SET name = $1,
+           description = COALESCE($2, description)
+       WHERE family_id=$3
+       RETURNING family_id,name,description,owner_id,created_at`,
+      [name, description ?? null, id]
+    )
+
+    res.json(result.rows[0])
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Update family failed' })
   }
 }
 

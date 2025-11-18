@@ -90,7 +90,7 @@ export default function RightSidebar({
                 if (!window.confirm("Xóa người này?")) return;
                 onDeletePerson && onDeletePerson(p.id);
               }}
-              className="bg-red-500 text-white rounded-md p-2 hover:bg-red-600"
+              className="bg-red-500 text-white rounded-md p-2 hover:bg-red-600 cursor-pointer"
               title="Xóa"
             >
               <FiTrash2 />
@@ -102,7 +102,7 @@ export default function RightSidebar({
       <div className="mt-3">
         <button
           onClick={handleLogout}
-          className="w-full bg-red-500 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-600"
+          className="w-full bg-red-500 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-600 cursor-pointer"
         >
           Đăng xuất
         </button>

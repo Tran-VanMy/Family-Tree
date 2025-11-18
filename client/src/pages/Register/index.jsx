@@ -64,7 +64,7 @@ export default function Register() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <button
-            className="w-full px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold"
+            className="w-full px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold cursor-pointer"
             type="submit"
             disabled={loading}
           >

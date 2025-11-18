@@ -6,6 +6,7 @@ import marriagesRouter from './routes/marriages.js'
 import parentChildRouter from './routes/parentChild.js'
 import authRouter from './routes/auth.js'
 import familiesRouter from './routes/trees.js' // rename file name to trees.js or families.js
+import relationsRouter from './routes/relations.js' // ✅ mới: router cho bảng relations
 
 dotenv.config()
 
@@ -20,6 +21,7 @@ app.use('/api/families', familiesRouter)
 app.use('/api/persons', personsRouter)
 app.use('/api/marriages', marriagesRouter)
 app.use('/api/parent-child', parentChildRouter)
+app.use('/api/relations', relationsRouter) // ✅ mới
 
 const PORT = process.env.PORT || 4000
 app.listen(PORT, "0.0.0.0", () => console.log(`✅ Server running on port ${PORT}`))
